@@ -8,9 +8,19 @@
 
 set -e
 
-# ── Load .env if present ─────────────────────────────────────────────────────
-if [ -f "$(dirname "$0")/../.env" ]; then
-  export $(grep -v '^#' "$(dirname "$0")/../.env" | xargs)
+# ── Load .env if present (handles values with spaces and commas) ─────────────
+ENV_FILE="$(dirname "$0")/../.env"
+if [ -f "$ENV_FILE" ]; then
+  while IFS= read -r line; do
+    # skip blank lines and comments
+    case "$line" in
+      ''|\#*) continue ;;
+    esac
+    # export only lines that look like KEY=value
+    case "$line" in
+      *=*) export "$line" ;;
+    esac
+  done < "$ENV_FILE"
 fi
 
 # ── Required variables ───────────────────────────────────────────────────────

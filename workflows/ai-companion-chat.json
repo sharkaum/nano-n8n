@@ -1,0 +1,84 @@
+{
+  "name": "AI Companion — Chat",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "allowFileUploads": false
+        }
+      },
+      "id": "chat-trigger",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "nano-ai-companion"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are {{ $env.AI_COMPANION_NAME }}, {{ $env.AI_COMPANION_PERSONA }}.\nToday's date is {{ $now.format('YYYY-MM-DD') }}.\nBe concise and helpful. If you don't know something, say so clearly.\nYou are running locally on a Jetson Nano edge device."
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "model": "={{ $env.AI_DEFAULT_MODEL }}",
+        "options": {
+          "temperature": "={{ $env.AI_TEMPERATURE }}",
+          "numPredictions": "={{ $env.AI_MAX_TOKENS }}"
+        }
+      },
+      "id": "ollama-model",
+      "name": "Ollama Model",
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "typeVersion": 1,
+      "position": [460, 480],
+      "credentials": {
+        "ollamaApi": {
+          "name": "Ollama (Nano host)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 10
+      },
+      "id": "memory",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.2,
+      "position": [660, 480]
+    }
+  ],
+  "connections": {
+    "Chat Trigger": {
+      "main": [
+        [{ "node": "AI Agent", "type": "main", "index": 0 }]
+      ]
+    },
+    "Ollama Model": {
+      "ai_languageModel": [
+        [{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [{ "node": "AI Agent", "type": "ai_memory", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Basic AI companion chat workflow using Ollama local LLM. Reads persona and model from .env variables. Includes rolling window memory (10 messages). Import, set Ollama credential, and activate.",
+    "templateId": "nano-ai-companion-chat"
+  }
+}

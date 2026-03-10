@@ -1,0 +1,45 @@
+# ═══════════════════════════════════════════════════════
+#  nano-n8n  |  .gitignore
+#  NEVER commit real secrets or local runtime data
+# ═══════════════════════════════════════════════════════
+
+# ── SECRET FILES — NEVER COMMIT ─────────────────────────
+.env
+.env.local
+.env.production
+.env.*.local
+secrets/
+*.secret
+*.key
+*.pem
+*.p12
+*.pfx
+
+
+# ── n8n runtime data (stays local / in Docker volumes) ──
+n8n_data/
+.n8n/
+
+
+# ── Docker compose override (local tweaks) ───────────────
+docker-compose.override.yml
+
+
+# ── OS & editor noise ────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+
+# ── Logs ─────────────────────────────────────────────────
+*.log
+logs/
+
+
+# ── Node / npm (if using custom nodes locally) ───────────
+node_modules/
+npm-debug.log*

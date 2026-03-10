@@ -1,0 +1,106 @@
+version: "3.8"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# nano-n8n  |  Docker Compose for Jetson Nano (ARM64 / aarch64)
+# ─────────────────────────────────────────────────────────────────────────────
+# Requirements:
+#   - Copy .env.example → .env and fill in all secrets before running
+#   - docker compose up -d
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL database ────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    platform: linux/arm64
+    container_name: nano-n8n-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${DB_POSTGRESDB_DATABASE}
+      POSTGRES_USER:     ${DB_POSTGRESDB_USER}
+      POSTGRES_PASSWORD: ${DB_POSTGRESDB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_POSTGRESDB_USER} -d ${DB_POSTGRESDB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - n8n_net
+
+  # ── n8n workflow automation ────────────────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    platform: linux/arm64
+    container_name: nano-n8n
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5678:5678"
+    environment:
+      # ── Database ────────────────────────────────────────────────────────────
+      DB_TYPE:                  postgresdb
+      DB_POSTGRESDB_HOST:       postgres
+      DB_POSTGRESDB_PORT:       5432
+      DB_POSTGRESDB_DATABASE:   ${DB_POSTGRESDB_DATABASE}
+      DB_POSTGRESDB_USER:       ${DB_POSTGRESDB_USER}
+      DB_POSTGRESDB_PASSWORD:   ${DB_POSTGRESDB_PASSWORD}
+
+      # ── Security ────────────────────────────────────────────────────────────
+      N8N_ENCRYPTION_KEY:       ${N8N_ENCRYPTION_KEY}
+      N8N_BASIC_AUTH_ACTIVE:    "true"
+      N8N_BASIC_AUTH_USER:      ${N8N_BASIC_AUTH_USER}
+      N8N_BASIC_AUTH_PASSWORD:  ${N8N_BASIC_AUTH_PASSWORD}
+
+      # ── Host & URL ──────────────────────────────────────────────────────────
+      N8N_HOST:                 ${N8N_HOST:-localhost}
+      N8N_PORT:                 5678
+      N8N_PROTOCOL:             ${N8N_PROTOCOL:-http}
+      WEBHOOK_URL:              ${WEBHOOK_URL:-http://localhost:5678/}
+
+      # ── AI / LLM API keys (passed as env, used inside n8n credentials) ──────
+      OPENAI_API_KEY:           ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY:        ${ANTHROPIC_API_KEY:-}
+      GOOGLE_AI_API_KEY:        ${GOOGLE_AI_API_KEY:-}
+      HUGGINGFACE_API_KEY:      ${HUGGINGFACE_API_KEY:-}
+      GROQ_API_KEY:             ${GROQ_API_KEY:-}
+      OLLAMA_BASE_URL:          ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+
+      # ── AI Companion settings ───────────────────────────────────────────────
+      AI_COMPANION_NAME:        ${AI_COMPANION_NAME:-Nano}
+      AI_COMPANION_PERSONA:     ${AI_COMPANION_PERSONA:-helpful assistant}
+      AI_DEFAULT_PROVIDER:      ${AI_DEFAULT_PROVIDER:-ollama}
+      AI_DEFAULT_MODEL:         ${AI_DEFAULT_MODEL:-llama3}
+      AI_MEMORY_ENABLED:        ${AI_MEMORY_ENABLED:-true}
+      AI_MAX_TOKENS:            ${AI_MAX_TOKENS:-2048}
+      AI_TEMPERATURE:           ${AI_TEMPERATURE:-0.7}
+
+      # ── Timezone & locale ───────────────────────────────────────────────────
+      GENERIC_TIMEZONE:         ${GENERIC_TIMEZONE:-America/Sao_Paulo}
+      TZ:                       ${GENERIC_TIMEZONE:-America/Sao_Paulo}
+
+      # ── Misc ────────────────────────────────────────────────────────────────
+      N8N_DIAGNOSTICS_ENABLED:  "false"
+      N8N_HIRING_BANNER_ENABLED:"false"
+      EXECUTIONS_DATA_PRUNE:    "true"
+      EXECUTIONS_DATA_MAX_AGE:  "168"   # hours — 7 days
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./custom-nodes:/home/node/.n8n/custom   # optional custom nodes
+    extra_hosts:
+      - "host.docker.internal:host-gateway"     # lets n8n reach Ollama on host
+    networks:
+      - n8n_net
+
+volumes:
+  postgres_data:
+  n8n_data:
+
+networks:
+  n8n_net:
+    driver: bridge

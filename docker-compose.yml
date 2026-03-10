@@ -85,7 +85,7 @@ services:
 
       # ── Misc ────────────────────────────────────────────────────────────────
       N8N_DIAGNOSTICS_ENABLED:  "false"
-      N8N_HIRING_BANNER_ENABLED:"false"
+      N8N_HIRING_BANNER_ENABLED: "false"
       EXECUTIONS_DATA_PRUNE:    "true"
       EXECUTIONS_DATA_MAX_AGE:  "168"   # hours — 7 days
 

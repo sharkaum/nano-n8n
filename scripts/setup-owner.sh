@@ -47,7 +47,7 @@ done
 echo "→ n8n is up. Attempting owner setup..."
 
 # ── Call the first-time setup endpoint ──────────────────────────────────────
-RESPONSE=$(curl -sf -X POST "$N8N_URL/api/v1/owner/setup" \
+RESPONSE=$(curl -sf -X POST "$N8N_URL/rest/owner/setup" \
   -H "Content-Type: application/json" \
   -d "{
     \"email\":     \"$OWNER_EMAIL\",
@@ -59,9 +59,8 @@ RESPONSE=$(curl -sf -X POST "$N8N_URL/api/v1/owner/setup" \
 # ── Interpret response ────────────────────────────────────────────────────────
 if echo "$RESPONSE" | grep -q '"id"'; then
   echo "✓ Owner account created: $OWNER_EMAIL"
-elif echo "$RESPONSE" | grep -qi '"owner already"'; then
+elif echo "$RESPONSE" | grep -qi 'already\|setup.*complete\|exist'; then
   echo "✓ Owner account already exists — nothing to do."
 else
-  echo "⚠ Unexpected response (owner may already exist, or check logs):"
-  echo "$RESPONSE"
+  echo "ℹ Raw response: $RESPONSE"
 fi

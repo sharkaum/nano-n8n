@@ -58,6 +58,8 @@ services:
       N8N_BASIC_AUTH_PASSWORD:  ${N8N_BASIC_AUTH_PASSWORD}
 
       # ── Host & URL ──────────────────────────────────────────────────────────
+      # When using Cloudflare Tunnel, set N8N_HOST to your tunnel domain
+      # e.g. n8n.yourdomain.com and N8N_PROTOCOL to https
       N8N_HOST:                 ${N8N_HOST:-localhost}
       N8N_PORT:                 5678
       N8N_PROTOCOL:             ${N8N_PROTOCOL:-http}
@@ -95,6 +97,20 @@ services:
       - ./custom-nodes:/home/node/.n8n/custom   # optional custom nodes
     extra_hosts:
       - "host.docker.internal:host-gateway"     # lets n8n reach Ollama on host
+    networks:
+      - n8n_net
+
+  # ── Cloudflare Tunnel ─────────────────────────────────────────────────────
+  # Exposes n8n to the internet securely — no port forwarding needed.
+  # Set CLOUDFLARE_TUNNEL_TOKEN in .env to enable. Comment out to disable.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    platform: linux/arm64
+    container_name: nano-n8n-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - n8n
     networks:
       - n8n_net
 
